@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="hr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voditelj igre</title>
+<style>
+:root{--bg:#f6f5f1;--sf:#fff;--tx:#1d1d1b;--mu:#6b6a64;--bd:#d9d7cf;--y:#f3c623;--yb:#fff6d2;--g:#2e9e5b;--gb:#dff3e6;--b:#2f6fd6;--bb:#dde8fb;--ac:#1d1d1b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17171a;--sf:#222226;--tx:#eeede8;--mu:#9a998f;--bd:#3a3a40;--yb:#4a3f12;--gb:#173a27;--bb:#182b4f;--ac:#eeede8}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+.w{max-width:1000px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:1fr 280px}
+@media(max-width:760px){.w{grid-template-columns:1fr}}
+.top{grid-column:1/-1;background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center}
+.top b{font-size:22px}.mu{color:var(--mu);font-size:14px}
+h3{margin:14px 0 8px;font-size:14px;color:var(--mu);text-transform:uppercase;letter-spacing:.04em}
+.card{display:block;width:100%;text-align:left;margin:0 0 8px;padding:12px 14px;border-radius:10px;border:2px solid;font:inherit;color:var(--tx);cursor:pointer}
+.card small{color:var(--mu);display:block}
+.card.y{background:var(--yb);border-color:var(--y)}.card.g{background:var(--gb);border-color:var(--g)}.card.b{background:var(--bb);border-color:var(--b)}
+.card:hover{filter:brightness(.96)}
+.card p{margin:6px 0 0;font-size:14px;white-space:pre-line;cursor:default}
+.card .info{margin:6px 6px 0 0;padding:3px 10px;font-size:13px}
+.card.sel{outline:3px solid var(--ac)}mark{background:var(--y);color:#1d1d1b;border-radius:3px;padding:0 2px}
+.pan{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px 14px}
+.pl{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 10px;border:1px solid var(--bd);border-radius:999px;background:var(--bg);color:var(--tx);font:inherit;font-size:14px;cursor:pointer}
+.chip.done{opacity:.45;text-decoration:line-through}.chip.cur{background:var(--ac);color:var(--bg);opacity:1;text-decoration:none}
+.log{max-height:300px;overflow:auto;font-size:14px;padding-left:0;list-style:none;margin:8px 0}
+.log li{padding:3px 0;border-bottom:1px solid var(--bd)}
+.btn{font:inherit;padding:8px 12px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);cursor:pointer;margin-right:6px}
+details{margin-top:10px}summary{cursor:pointer;color:var(--mu);font-size:14px}
+</style></head><body><div class="w" id="app"></div>
+<script>
+// ===== KONFIGURACIJA (ovdje mijenjaš pravila) =====
+const IGRACI=["Helena","Boris","Vanja","Alex","Ema","Marina","Saša","Teodor","Nives","Ferdinand","Karla","Ljubica"];
+const PRVI="Ema", MAX_RUNDI=24;
+// k: y=žuta, g=zelena, b=plava; samo = smiju birati samo ti igrači; pool = ulazi u opću ponudu žutih
+const K={
+ "P001":{k:"y",t:"Pretraživanje garaže",
+  tekst:"Ideš s [ime suigrača] u garažu. Prostorom miriše na benzin i vlagu. Dok palite svjetlo, [ime suigrača] prvi/a ulazi dublje i naglo zastaje ispred Damirovog automobila — na podu je velika, svježa lokva ulja. Netko tko očito nije znao što radi amaterski je petljao po kočnicama i podvozju auta. Dok pregledavate policu s opremom, iza hrpe starog alata pronalazite Teodorovu sjekiru koja ondje ne bi trebala stajati. Kako je ta sjekira dospjela u garažu?",
+  ver:[{ako:"P014",tekst:"Ideš s [ime suigrača] u garažu. Prostorom miriše na benzin i vlagu. Dok palite svjetlo, [ime suigrača] prvi/a ulazi dublje i naglo zastaje ispred Damirovog automobila — na podu je velika, svježa lokva ulja. Netko tko očito nije znao što radi amaterski je petljao po kočnicama i podvozju auta. Dok pregledavate policu s opremom, iza hrpe starog alata pronalazite Teodorovu sjekiru koja ondje ne bi trebala stajati. I to je oštrica koja odgovara ozljedi na Damirovim leđima!"}]},
+ "P002":{k:"y",t:"Ispitaj Ljubicu",pool:1},
+ "P003":{k:"y",t:"Odi na tavan po aparat za DNK analizu",samo:["Ema","Marina","Karla"]},
+ "P004":{k:"g",t:"Detaljno pretraži auto"},
+ "P005":{k:"y",t:"Pretraži Marinu",samo:["Nives"]},
+ "P005g":{k:"g",t:"Pretraži Marinu",code:"P005"},
+ "P006":{k:"y",t:"Pretraži vrt"},
+ "P006g":{k:"g",t:"Pretraži vrt",code:"P006"},
+ "P007":{k:"y",t:"Pretraži Nives",samo:["Ema","Marina"]},
+ "P007g":{k:"g",t:"Pretraži Nives",code:"P007"},
+ "P008":{k:"y",t:"Pretraži Damirovu radnu sobu",pool:1},
+ "P009":{k:"y",t:"Pretraži Sašu",pool:1},
+ "P010":{k:"y",t:"Pretraži podrum",pool:1},
+ "P011":{k:"g",t:"Pretraži podrum s Ljubicom"},
+ "P012":{k:"y",t:"Pretraži sjenicu",samo:["Ferdinand"]},
+ "P013":{k:"g",t:"Prati trag vina iz sjenice u šumu"},
+ "P014":{k:"g",t:"Pretraži detaljnije Damirovo tijelo"},
+ "P015":{k:"y",t:"Pretraži Damirovu spavaću sobu",pool:1},
+ "P016":{k:"y",t:"Pretraži balkon"},
+ "P017":{k:"y",t:"Pretraživanje kupaonice na katu",pool:1},
+ "P018":{k:"y",t:"Pretraži kuhinju",pool:1},
+ "P019":{k:"g",t:"Analiziraj tablete nađene u kuhinji"}
+};
+// kad su SVE kartice iz "kad" odabrane, otkrivaju se kartice iz "daje"
+const OTKRIVA=[
+ {kad:["P001"],daje:["P014","P004"]},
+ {kad:["P002"],daje:["P005g"]},
+ {kad:["P003","P018"],daje:["P019"]},
+ {kad:["P006"],daje:["P014"]},
+ {kad:["P008"],daje:["P007g"]},
+ {kad:["P010"],daje:["P011"]},
+ {kad:["P012"],daje:["P013"]},
+ {kad:["P016"],daje:["P006g"]}
+];
+const RASPORED={P001:[1,5,9,13,17,21],P006:[3,7,11,15,19,23]}; // plava P001 / žuta P006
+const P016_OD_RUNDE=6;
+// ===== KRAJ KONFIGURACIJE =====
+
+// ===== TEKSTOVI (string = jedan tekst; objekt s ver = tekst se mijenja kad je ako-kartica odabrana) =====
+const T005=`Iskorištavaš trenutak gužve u salonu i odlučno prilaziš Marini. Dok ona problijedjela pokušava protestirati, posežeš joj u džep kaputa i torbu. Izvlačiš svežanj zgužvanih, starih papira, službenih medicinskih izvještaja i pisama s pečatom privatne klinike od prije nekoliko desetljeća.
+Dok čitaš redove, tlo ti se miče pod nogama: na papirima crno na bijelo piše da je Ema zapravo Marina kćer, a Saša je sin Damira i njegove prve žene! Još šokantnije — dokumenti dokazuju da je Damir potkupio liječnike da Marini lažu o navodnim komplikacijama pri porođaju, da ju uspavaju i da tajno zamjene bebe u rodilištu kako bi sakrio vlastiti trag i manipulirao obitelji. Marina je sve ove godine živjela u laži, a istina je upravo isplivala na površinu.`;
+const T006=`Izlazite s [ime suigrača] kroz balkonska vrata u mračni, hladni vrt. S baterijom u ruci oprezno kročite prema sjenici, a onda vam se koža naježi kad u travi ugledate beživotno Damirovo tijelo. Dok se šokirani saginjete nad njim, odmah primjećujete stravičan prizor — u leđa mu je zabijen prepoznatljivi Borisov nož, čiji rukohvat svi u kući dobro poznaju. Nema sumnje, tragovi upućuju ravno na Borisa kao ubojicu.`;
+const T007=`Pristupate Nives dok ona pokušava ostati pribrana i distancirana od opće panike u kući. Kad joj odlučno pretražite torbicu, umjesto uobičajenih sitnica pronalazite skriveni pretinac. Izvlačite van hrpu Damirovih skupocjenih dragulja i dijamanata koje je netko upravo večeras pokupio iz obiteljskog sefa. Dokaz je jasan — Nives je imala svoje prste u pljački.`;
+const T={
+"P002":`Prilaziš Ljubici koja u kutu salona još uvijek drži sklopljene oči i duboko diše. Dok je oštro pitaš kako je mogla znati za smrt kad ga nije ona ubila, Ljubica polako otvara teške oči, fiksira te pogledom i misterioznim, šaptačkim glasom govori:
+"Vidjela sam ženu s umornim očima... prebacivala je sitne bijele tablete iz jedne kutijice u drugu, kao da želi sakriti čitavu ljekarnu. Ali duše ne lažu — netko je odlučio da stari recepti trebaju novi otrov."
+Vanja kaže: vidjela sam Marinu kako u kuhinji nešto radi s tabletama!`,
+"P003":`Odlaziš s [ime suigrača] mračnim stepenicama na tavan. U zabačenom kutu, skriven ispod stare plahte, stoji prijenosni aparat za DNK analizu koji je netko ovdje tajno donio. Aparat je spreman za rad! Od sada pa nadalje, bilo koji par tijekom svoje pretrage može potrošiti jedan red/akciju da uzme uzorak s nekog dokaza i provjeri čiji je (npr. čiji je trag na nožu, sjekiri ili boci). Pravila su jasna: svaka analiza troši dragocjeno vrijeme.`,
+"P004":`Ulaziš s [ime suigrača] natrag u mračnu garažu, s baterijom u ruci, odlučni provjeriti što se točno dogodilo s Damirovim automobilom. Spuštate se na koljena i osvjetljavate lokvu ulja ispod auta. Kad zavirite bliže kočionom sustavu i podvozju, odmah vidite da je netko amaterski i nasilno prerezao crijeva kočnica.
+Dok pažljivije pretražujete tlo oko guma, [ime suigrača] se saginje i podiže nešto sjajno iz prljavštine točno pokraj kotača — prepoznatljivu, unikatnu Eminu naušnicu koja je ondje ispala tijekom petljanja po autu! Dokaz je tu: sve upućuje na to da je Ema bila ta koja je prerezala kočnice na autu.`,
+"P005":T005,"P005g":T005,"P006":T006,"P006g":T006,"P007":T007,"P007g":T007,
+"P008":`Ulaziš s [ime suigrača] u Damirovu radnu sobu. Zrak je težak, a prostor djeluje uredno sve dok ne počnete otvarati ormare i police. U velikom drvenom ormaru otkrivate skriveni, sada potpuno otvoreni sef — upravo iz tog ormara je Nives ranije snimala.
+Dok pretražujete papire na stolu i ladice, pronalazite još šokantniji dokaz: dvije police osiguranja na ogroman iznos. Jedna je glasila na Damirovu bivšu ženu, a druga, potpuno nova i tek sklopljena, glasi na Karlino ime. Netko je planirao skupu igru na tuđe živote.`,
+"P009":`Pristupate Saši dok on u šoku i nevjerici stoji u salonu, potresen viješću o Damirovoj smrti. Kada mu odlučno pretresate džepove sakoa i hlača, umjesto bilo kakvih sumnjivih tragova ili oružja, u unutrašnjem džepu pronalazite samo dvije stvari:
+Zgužvano pismo/govor u kojem je Saša planirao večeras javno zatražiti Eminu ruku i dokazati Damiru da je vrijedan i sposoban čovjek.
+Luksuzni zaručnički prsten u baršunastoj kutijici, spreman za večerašnju prosidbu Emu.`,
+"P010":`Spuštaš se s [ime suigrača] u podrum. Pri otvaranju vrata aktivira se zamka — težak kovčeg pada s vrha i na mjestu ubija tvog suigrača. U potpunom šoku i panici, bez razmišljanja se okrećeš i trčiš natrag gore!`,
+"P011":`Spuštaš se s Ljubicom u podrum. Na dnu stepenica i dalje leži tijelo [ime igrača], nepomično pod teškim kovčegom. Dok u šoku stojiš, Ljubica polako prilazi tijelu, pruža ruke iznad kovčega, sklapa oči i mističnim glasom šapće:
+"Zamku je postavila ruka koja nosi skriveno oružje i lažnu značku... Netko tko slavi pravdu, ali je noćas uzeo zakon u svoje ruke kako bi naplatio stari dug koji sud nikada nije presudio."`,
+"P012":`Dolaziš s [ime suigrača] u mračnu vrtnu sjenicu. Na podu pronalaziš krhotine razbijene boce vina koju je Helena večeras poklonila Damiru. Kroz prozor primjećuješ svjež trag prolivenog vina koji se gubi u mraku i vodi ravno prema rubu obližnje šume.`,
+"P013":`Pratite trag prolivenog vina iz sjenice koji vas uvodi u mračnu šumu. Pod snopom baterije uskoro nailazite na krivca — u travi leži mrtva šumska lisica okružena s njuškom pofarbanom crvenim vinom. Očito je pronašla odbačenu bocu, popila otrovano vino i uginula na mjestu.`,
+"P014":{tekst:`Pregledavate Damirovo tijelo bliže nego prije i shvaćate zapanjujuću istinu: Borisov nož samo je površno probio njegovu debelu jaknu, ostavivši plitku ogrebotinu. Damir zapravo nije ubijen tim nožem — prava, smrtonosna oštrica kojom je izvršen zločin još uvijek je negdje skrivena. (ima veliku ranu na leđima koja ga je ubila i ta rana nije od noža)`,
+ ver:[{ako:"P001",tekst:`Pregledavate Damirovo tijelo bliže nego prije i shvaćate zapanjujuću istinu: Borisov nož samo je površno probio njegovu debelu jaknu, ostavivši plitku ogrebotinu. Damir zapravo nije ubijen tim nožem — prava, smrtonosna oštrica kojom je izvršen zločin je Teodorova sjekira koju ste našli u garaži.`}]},
+"P015":`Ulaziš s [ime suigrača] u Damirovu spavaću sobu. Tvoj suigrač neoprezno prilazi krevetu i udiše jaki, nevidljivi otrov kojim je premazana posteljina te u sekundi pada mrtav.
+U panici istrčavaš natrag u salon. Dok zadihan pričaš što se dogodilo, Ferdinand/Frida se lomi pod krivnjom i priznaje: "Oprostite... Karla i ja smo premazali krevet smrtonosnim biljnim otrovom! Karla je sigurna da ju je Damir želio ubiti. Htjeli smo ga samo preduhitriti!"`,
+"P016":`Izlaziš s [ime suigrača] na mračni, vjetroviti balkon na katu kako bi provjerili okolinu iz ptičje perspektive. Dok oprezno koračate po skliskoj podlozi i gledate u smjeru mračne šume, snop vaše svjetiljke klizne dolje prema travnjaku u vrtu — u snopu svjetla jasno primjećujete Damirovo beživotno tijelo kako leži napušteno na travi, okruženo mrljama krvi!`,
+"P017":`Ulaziš s [ime suigrača] u Damirovu kupaonicu na katu. Na umivaoniku primjećuješ razbacane bočice lijekova i fale ljekovi za srce.`,
+"P018":`U kuhinjskom ormariću pronalazite dvije kutijice s tabletama koje na prvi pogled izgledaju jednako. Na jednoj piše da su ljekoci za srce, a na drugoj da su vitamini. Marina tvrdi da je samo pospremala stvari, ali ne može objasniti zašto su lijekovi u kuhinji.`,
+"P019":`Usporedba tableta pokazuje da jedna od njih nije ista kao ostale. U kutijici s vitaminima se nalazi jedna tableta napunjena kikirikijem (Damir je bio jako alergičan na kikiriki). Detaljnija analiza pokazuje da su u kutijici vitamina tablete za srce, a u kutijici tableta za srce vitamini. Ništa nema smisla.`
+};
+Object.keys(T).forEach(id=>{const v=T[id];Object.assign(K[id],typeof v=="string"?{tekst:v}:v)});
+const code=id=>K[id].code||id;
+let log=[], ruka=null, zamId=null, slId=null, zam={};
+try{zam=JSON.parse(localStorage.getItem("zam")||"{}")}catch(e){}
+try{log=JSON.parse(localStorage.getItem("igra")||"[]")}catch(e){}
+const spremi=()=>{try{localStorage.setItem("igra",JSON.stringify(log));localStorage.setItem("zam",JSON.stringify(zam))}catch(e){}};
+const runda=()=>Math.floor(log.length/12)+1;
+const odigrali=()=>log.slice((runda()-1)*12).map(m=>m.p);
+function naRedu(){
+ const o=odigrali(); if(ruka&&!o.includes(ruka))return ruka;
+ if(!o.length)return PRVI;
+ return IGRACI.find(p=>!o.includes(p));
+}
+function ponuda(p){
+ const r=runda(), S=new Set(log.map(m=>m.c));
+ const smije=id=>!K[id].samo||K[id].samo.includes(p);
+ let y=[];
+ Object.keys(K).filter(id=>K[id].k=="y"&&K[id].samo&&smije(id)&&!S.has(code(id))).forEach(id=>y.push(id));
+ const prije6=log.slice(0,(P016_OD_RUNDE-1)*12).some(m=>m.c=="P001"||m.c=="P006");
+ const p16=r>=P016_OD_RUNDE&&!prije6&&!S.has("P016");
+ if(p16)y.push("P016");
+ if(RASPORED.P006.includes(r)&&!S.has("P006")&&!S.has("P016"))y.push("P006");
+ if(RASPORED.P001.includes(r)&&!S.has("P001"))y.unshift("P001");
+ const inc=dolazna();
+ y=y.filter(x=>x!=inc);
+ const pool=Object.keys(K).filter(id=>K[id].pool&&!S.has(id)&&!y.includes(id)&&id!=inc);
+ const br=inc?2:3;
+ const ponudene=y.slice(0,br);
+ while(ponudene.length<br&&pool.length)ponudene.push(pool.shift());
+ const ostale=[...y.slice(br),...pool];
+ let g=[];
+ OTKRIVA.forEach(o=>{if(o.kad.every(c=>S.has(c)))o.daje.forEach(id=>{
+  if(S.has(code(id)))return;
+  if(!smije(id))return;
+  g.push(id);})});
+  (zam[runda()+"|"+p]||[]).forEach(([a,b])=>{const i=ponudene.indexOf(a),j=ostale.indexOf(b);if(i>=0&&j>=0){ponudene[i]=b;ostale[j]=a}});
+ g=[...new Set(g)];return{y:ponudene,ostale,g,inc};
+}
+function dolazna(){const l=log[log.length-1];if(!l||!l.s)return null;if(log.some(m=>m.c==l.s))return null;return l.s}
+function saljiId(id){slId=slId==id?null:id;draw()}
+function karta(id,sw,sn){
+ const c=K[id],S=new Set(log.map(m=>m.c));let t=c.tekst||"",bad="";
+ if(c.samo)bad+=`<small>🔒 samo: ${c.samo.join(", ")}</small>`;
+ (c.ver||[]).forEach(x=>{const on=S.has(x.ako);if(on)t=x.tekst;bad+=`<small>⚠ 2 verzije teksta — sad: ${on?"nakon ":"bez "}${x.ako}</small>`});
+ t=t.replace(/\[([^\]]+)\]/g,"<mark>[$1]</mark>");
+ const ot=OTKRIVA.filter(o=>o.kad.includes(code(id))).map(o=>o.daje.map(code).join(", ")+(o.kad.length>1?" (uz "+o.kad.filter(k=>k!=code(id)).join(", ")+")":"")).join("; ")||"ništa";
+ return `<div class="card ${c.k}${slId==id?" sel":""}" onclick="bira('${id}')"><b>${code(id)}</b> ${c.t}${bad}<small>Otkriva: ${ot}</small>${t?`<button class="btn info" onclick="event.stopPropagation();this.nextElementSibling.hidden=!this.nextElementSibling.hidden">ℹ Info</button><p hidden onclick="event.stopPropagation()">${t}</p>`:""}${sw?`<button class="btn info" onclick="event.stopPropagation();pokaziZam('${id}')">⇄ Zamijeni</button>`:""}${sn?`<button class="btn info" onclick="event.stopPropagation();saljiId('${id}')">${slId==id?"✔ Šalje se idućem":"➤ Pošalji idućem"}</button>`:""}</div>`}
+function bira(id){const p=naRedu();if(!p||log.length>=MAX_RUNDI*12)return;log.push({p,c:code(id),s:(slId&&slId!=code(id))?slId:null});ruka=null;zamId=null;slId=null;spremi();draw()}
+function poništi(){log.pop();ruka=null;spremi();draw()}
+function postavi(p){ruka=p;draw()}
+function pokaziZam(id){zamId=zamId==id?null:id;draw()}
+function zamijeni(to){const k=runda()+"|"+naRedu();(zam[k]=zam[k]||[]).push([zamId,to]);zamId=null;spremi();draw()}
+function reset(){if(confirm("Obrisati cijelu igru?")){log=[];zam={};ruka=null;zamId=null;spremi();draw()}}
+function draw(){
+ const r=runda(), p=naRedu(), o=odigrali(), po=ponuda(p);
+ const sl=IGRACI.filter(x=>!o.includes(x)&&x!=p)[0];
+ const sched=n=>RASPORED[n].filter(x=>x>=r).slice(0,3).join(", ")||"–";
+ document.getElementById("app").innerHTML=`
+ <div class="top"><div><span class="mu">Runda</span> <b>${r}</b> / ${MAX_RUNDI}</div>
+  <div><span class="mu">Na redu</span> <b>${p}</b></div>
+  <div class="mu">Poteza u rundi: ${o.length}/12</div>
+  <div class="mu">Za slanje idućem: <b>${slId||"nije odabrano"}</b></div>
+  <div class="mu">P001 u rundama: ${sched("P001")} · P006: ${sched("P006")}</div></div>
+ <div class="pan">${po.inc?`<h3 style="margin-top:0">📨 Poslana od ${log[log.length-1].p}</h3>${karta(po.inc,0,1)}`:""}<h3 ${po.inc?"":'style="margin-top:0"'}>Žute (${po.inc?"2 + poslana":"3"} u ponudi)</h3>
+  ${po.y.map(id=>karta(id,1,1)).join("")||"<span class=mu>Nema žutih.</span>"}
+  ${zamId&&po.y.includes(zamId)?`<div class="pan" style="margin:8px 0"><b>Zamijeni ${zamId} s:</b><div style="margin-top:8px">${po.ostale.map(id=>`<button class="card y" onclick="zamijeni('${id}')"><b>${code(id)}</b> ${K[id].t}</button>`).join("")||"<span class=mu>Nema slobodnih žutih.</span>"}</div><button class="btn" onclick="pokaziZam('${zamId}')">Odustani</button></div>`:""}
+  ${po.g.length?"<h3>Zelene (otkrivene)</h3>"+po.g.map(id=>karta(id,p)).join(""):""}
+  ${po.ostale.length?`<details><summary>Ostale slobodne žute (${po.ostale.length})</summary><div style="margin-top:8px">${po.ostale.map(id=>karta(id,p)).join("")}</div></details>`:""}
+ </div>
+ <div><div class="pan"><h3 style="margin-top:0">Igrači</h3><div class="pl">
+  ${IGRACI.map((x,i)=>`<button class="chip ${x==p?"cur":o.includes(x)?"done":""}" onclick="postavi('${x}')">${String(i+1).padStart(2,"0")} ${x}</button>`).join("")}</div>
+  <div class="mu" style="margin-top:8px">Klik na ime ručno postavlja tko je na redu.</div></div>
+  <div class="pan" style="margin-top:16px"><h3 style="margin-top:0">Dnevnik</h3>
+  <ul class="log">${log.slice().reverse().map((m,i)=>`<li>R${Math.floor((log.length-1-i)/12)+1} · ${m.p} → <b>${m.c}</b>${m.s?` · šalje ${m.s}`:""}</li>`).join("")||"<li class=mu>Još nema poteza.</li>"}</ul>
+  <button class="btn" onclick="poništi()" ${log.length?"":"disabled"}>Poništi zadnji</button><button class="btn" onclick="reset()">Nova igra</button></div></div>`;
+}
+draw();
+</script></body></html>

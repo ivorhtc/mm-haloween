@@ -118,9 +118,11 @@ const krug=()=>Math.floor(log.length/12);
 const odigrali=()=>log.slice(krug()*12).map(m=>m.p);
 function naRedu(){
  const o=odigrali(); if(ruka&&!o.includes(ruka))return ruka;
- if(!o.length)return PRVI;
- return IGRACI.find(p=>!o.includes(p));
+ if(!log.length)return PRVI;
+ return slijedeci(log[log.length-1].c,o);
 }
+// idući = prvi slobodan igrac od broja (broj kartice % 12), 0 = 12; ako nema slobodnih iznad, kreće od početka
+function slijedeci(c,o){const t=(parseInt(c.slice(1),10)%12)||12;for(let k=0;k<12;k++){const p=IGRACI[(t-1+k)%12];if(!o.includes(p))return p}return IGRACI[t-1]}
 function ponuda(p){
  const r=runda(), S=new Set(log.map(m=>m.c));
  const smije=id=>!K[id].samo||K[id].samo.includes(p);
@@ -153,8 +155,9 @@ function karta(id,sw,sn){
  if(c.samo)bad+=`<small>🔒 samo: ${c.samo.join(", ")}</small>`;
  (c.ver||[]).forEach(x=>{const on=S.has(x.ako);if(on)t=x.tekst;bad+=`<small>⚠ 2 verzije teksta — sad: ${on?"nakon ":"bez "}${x.ako}</small>`});
  t=t.replace(/\[([^\]]+)\]/g,"<mark>[$1]</mark>");
+ let o2=[...odigrali(),naRedu()];if(o2.length>=12)o2=[];const nx=slijedeci(code(id),o2);
  const ot=OTKRIVA.filter(o=>o.kad.includes(code(id))).map(o=>o.daje.map(code).join(", ")+(o.kad.length>1?" (uz "+o.kad.filter(k=>k!=code(id)).join(", ")+")":"")).join("; ")||"ništa";
- return `<div class="card ${c.k}${slId==id?" sel":""}" onclick="bira('${id}')"><b>${code(id)}</b> ${c.t}${bad}<small>Otkriva: ${ot}</small>${t?`<button class="btn info" onclick="event.stopPropagation();this.nextElementSibling.hidden=!this.nextElementSibling.hidden">ℹ Info</button><p hidden onclick="event.stopPropagation()">${t}</p>`:""}${sw?`<button class="btn info" onclick="event.stopPropagation();pokaziZam('${id}')">⇄ Zamijeni</button>`:""}${sn?`<button class="btn info" onclick="event.stopPropagation();saljiId('${id}')">${slId==id?"✔ Šalje se idućem":"➤ Pošalji idućem"}</button>`:""}</div>`}
+ return `<div class="card ${c.k}${slId==id?" sel":""}" onclick="bira('${id}')"><b>${code(id)}</b> ${c.t}${bad}<small>Otkriva: ${ot}</small><small>→ Idući igra: <b>${nx}</b></small>${t?`<button class="btn info" onclick="event.stopPropagation();this.nextElementSibling.hidden=!this.nextElementSibling.hidden">ℹ Info</button><p hidden onclick="event.stopPropagation()">${t}</p>`:""}${sw?`<button class="btn info" onclick="event.stopPropagation();pokaziZam('${id}')">⇄ Zamijeni</button>`:""}${sn?`<button class="btn info" onclick="event.stopPropagation();saljiId('${id}')">${slId==id?"✔ Šalje se idućem":"➤ Pošalji idućem"}</button>`:""}</div>`}
 function bira(id){const p=naRedu();if(!p||log.length>=MAX_RUNDI)return;log.push({p,c:code(id),s:(slId&&slId!=code(id))?slId:null});ruka=null;zamId=null;slId=null;spremi();draw()}
 function poništi(){log.pop();ruka=null;spremi();draw()}
 function postavi(p){ruka=p;draw()}
